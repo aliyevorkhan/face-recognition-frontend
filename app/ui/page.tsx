@@ -135,11 +135,13 @@ export default function FaceVerification() {
       console.log("Image 2:", image2.name, `(${image2.size} bytes)`, image2.type)
 
       // Use our own API route instead of calling the external API directly
-      const res = await fetch("/api/verify", {
+      const FACE_API_URL = process.env.FACE_API_URL || "https://face.simic.app/api/verify/"
+      const res = await fetch(FACE_API_URL, {
         method: "POST",
         body: formData,
         headers: {
           "X-API-KEY": apiKey,
+          "X-Service-Code": "face",
         },
       })
 
