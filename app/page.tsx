@@ -2,13 +2,13 @@
 
 import type React from "react"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Loader2, CheckCircle2, XCircle, Info } from "lucide-react"
+import { Loader2, CheckCircle2, XCircle, Info, Save, Trash2, Edit2 } from "lucide-react"
 import Image from "next/image"
 
 // Define types for API responses
@@ -24,8 +24,13 @@ type ErrorResponse = {
   status?: number
 }
 
+// Local storage key
+const API_KEY_STORAGE_KEY = "face-verification-api-key"
+
 export default function FaceVerification() {
   const [apiKey, setApiKey] = useState("")
+  const [isApiKeySaved, setIsApiKeySaved] = useState(false)
+  const [isEditingApiKey, setIsEditingApiKey] = useState(false)
   const [image1, setImage1] = useState<File | null>(null)
   const [image2, setImage2] = useState<File | null>(null)
   const [image1Preview, setImage1Preview] = useState<string | null>(null)
@@ -38,6 +43,50 @@ export default function FaceVerification() {
 
   const fileInput1Ref = useRef<HTMLInputElement>(null)
   const fileInput2Ref = useRef<HTMLInputElement>(null)
+  const apiKeyInputRef = useRef<HTMLInputElement>(null)
+
+  // Load API key from local storage on component mount
+  useEffect(() => {
+    const savedApiKey = localStorage.getItem(API_KEY_STORAGE_KEY)
+    if (savedApiKey) {
+      setApiKey(savedApiKey)
+      setIsApiKeySaved(true)
+    } else {
+      setIsEditingApiKey(true)
+    }
+  }, [])
+
+  // Save API key to local storage
+  const saveApiKey = () => {
+    if (apiKey.trim()) {
+      localStorage.setItem(API_KEY_STORAGE_KEY, apiKey)
+      setIsApiKeySaved(true)
+      setIsEditingApiKey(false)
+    }
+  }
+
+  // Remove API key from local storage
+  const removeApiKey = () => {
+    localStorage.removeItem(API_KEY_STORAGE_KEY)
+    setApiKey("")
+    setIsApiKeySaved(false)
+    setIsEditingApiKey(true)
+    // Focus the input after a short delay to allow the UI to update
+    setTimeout(() => {
+      apiKeyInputRef.current?.focus()
+    }, 100)
+  }
+
+  // Toggle editing mode for API key
+  const toggleEditApiKey = () => {
+    setIsEditingApiKey(!isEditingApiKey)
+    // Focus the input after a short delay to allow the UI to update
+    if (!isEditingApiKey) {
+      setTimeout(() => {
+        apiKeyInputRef.current?.focus()
+      }, 100)
+    }
+  }
 
   const handleImage1Change = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -149,18 +198,64 @@ export default function FaceVerification() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
               <div>
-                <Label htmlFor="apiKey" className="text-base">
-                  X-API-KEY
-                </Label>
-                <Input
-                  id="apiKey"
-                  type="text"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="Enter your API key"
-                  required
-                  className="mt-1"
-                />
+                <div className="flex justify-between items-center mb-2">
+                  <Label htmlFor="apiKey" className="text-base">
+                    X-API-KEY
+                  </Label>
+                  {isApiKeySaved && !isEditingApiKey && (
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-green-600 flex items-center">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        Saved
+                      </span>
+                      <Button type="button" variant="ghost" size="sm" onClick={toggleEditApiKey} className="h-7 px-2">
+                        <Edit2 className="h-3 w-3 mr-1" />
+                        Edit
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Input
+                    id="apiKey"
+                    ref={apiKeyInputRef}
+                    type="text"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="Enter your API key"
+                    required
+                    className="flex-1"
+                    disabled={isApiKeySaved && !isEditingApiKey}
+                  />
+
+                  {isEditingApiKey && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={saveApiKey}
+                      disabled={!apiKey.trim()}
+                      className="whitespace-nowrap"
+                    >
+                      <Save className="h-4 w-4 mr-1" />
+                      Save Key
+                    </Button>
+                  )}
+
+                  {isApiKeySaved && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={removeApiKey}
+                      className="whitespace-nowrap text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Remove
+                    </Button>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
